@@ -54,6 +54,7 @@ import joblib
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import zipfile
 
 
 # ============================================================
@@ -81,8 +82,10 @@ ROOT = Path(__file__).resolve().parent
 
 
 # Dataset do e-commerce.
-DATA = ROOT / "ecommerce_hiperpersonalizacao_catalogo.csv"
+#DATA = ROOT / "ecommerce_hiperpersonalizacao_catalogo.csv"
+DATA_ZIP = ROOT / "ecommerce_hiperpersonalizacao_catalogo.zip"
 
+CSV_NAME = "ecommerce_hiperpersonalizacao_catalogo.csv"
 
 # Pasta onde estão os modelos e configurações.
 MODELS = ROOT / "models"
@@ -415,10 +418,67 @@ hr {
 # 06. CARREGAMENTO DOS DADOS
 # ============================================================
 
+# @st.cache_data
+# def load_data():
+
+#     return pd.read_csv(DATA)
+
 @st.cache_data
 def load_data():
+    """
+    Carrega o dataset diretamente de dentro do arquivo ZIP.
 
-    return pd.read_csv(DATA)
+    O CSV não precisa ser descompactado no projeto.
+    Isso permite manter o dataset compactado no GitHub.
+    """
+
+    if not DATA_ZIP.exists():
+
+        raise FileNotFoundError(
+            f"Dataset não encontrado: {DATA_ZIP}"
+        )
+
+    with zipfile.ZipFile(DATA_ZIP, "r") as z:
+
+        # ----------------------------------------------------
+        # Procura o CSV dentro do ZIP
+        # ----------------------------------------------------
+
+        csv_files = [
+            name
+            for name in z.namelist()
+            if name.lower().endswith(".csv")
+        ]
+
+        if not csv_files:
+
+            raise FileNotFoundError(
+                "Nenhum arquivo CSV foi encontrado dentro "
+                "do ecommerce_hiperpersonalizacao_catalogo.zip."
+            )
+
+        # ----------------------------------------------------
+        # Prioriza o nome esperado
+        # ----------------------------------------------------
+
+        csv_name = next(
+            (
+                name
+                for name in csv_files
+                if Path(name).name == CSV_NAME
+            ),
+            csv_files[0]
+        )
+
+        # ----------------------------------------------------
+        # Lê o CSV diretamente do ZIP
+        # ----------------------------------------------------
+
+        with z.open(csv_name) as f:
+
+            df = pd.read_csv(f)
+
+    return df
 
 
 # ============================================================

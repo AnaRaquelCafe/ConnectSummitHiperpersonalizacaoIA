@@ -10,3 +10,4 @@ plotly==6.3.0
 google-genai==1.31.0
 python-dotenv==1.1.1
 xgboost==3.0.2
+zipfile
