@@ -1,14 +1,14 @@
 # NOVA+ HyperCommerce: Demo de Hiperpersonalização com IA✨
 
-Projeto pensado para uma palestra hands-on de hiperpersonalização com Machine Learning + IA Generativa.
+Projeto hands-on de hiperpersonalização com Machine Learning + IA Generativa.
 
-## Arquitetura da demo
+## Arquitetura da demonstração ⚙️
 
-`Histórico → Feature Engineering → XGBoost → Propensão → Produto candidato → Gemini → Experiência Streamlit`
+`Histórico → Feature Engineering → XGBoost → Propensão → Gemini → Experiência Streamlit`
 
 O notebook original já usa XGBoost para estimar propensão de conversão e usa o histórico recente para construir a narrativa generativa. O app transforma essa lógica em uma experiência visual de "adaptive commerce". 
 
-## Estrutura
+## Estrutura do repositório 🗂️
 
 ```text
 ConnectSummitHiperpersonalizacaoIA/
@@ -35,24 +35,24 @@ pip install -r requirements.txt
 
 A aplicação acessa o binário do modelo clássico:
 
-`models/propensity_model.joblib`
+- `models/propensity_model.joblib`
 
 E os artefatos da camada generativa:
 
 - `genai_config.json`
 
-### Importante sobre o Gemini
+### Importante sobre o Gemini 🔗
 
 O Gemini usado no notebook é acessado via API (`google-genai`), portanto o modelo generativo não é salvo como um arquivo `.bin` local. O notebook utiliza `gemini-3.6-flash` por API.
 
 
-## 3. Rodar 🥝
+## 3. Executar 🥝
 
 ```powershell
 streamlit run app_hiperpersonalizado.py
 ```
 
-## 4. IA Generativa ao vivo
+## 4. IA Generativa ao vivo 🚀
 
 No Windows PowerShell:
 
@@ -61,6 +61,6 @@ $env:GEMINI_API_KEY="SUA_CHAVE"
 streamlit run app_hiperpersonalizado.py
 ```
 
-A mensagem principal:
+📌 A mensagem principal: 
 
 > **O ML decide o que oferecer. A IA generativa decide como transformar essa decisão em experiência.**
