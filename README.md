@@ -1,4 +1,4 @@
-# NOVA+ HyperCommerce — Demo de Hiperpersonalização ✨
+# NOVA+ HyperCommerce: Demo de Hiperpersonalização com IA✨
 
 Projeto pensado para uma palestra hands-on de hiperpersonalização com Machine Learning + IA Generativa.
 
@@ -19,6 +19,8 @@ ConnectSummitHiperpersonalizacaoIA/
     ├── propensity_model.joblib
     ├── model_metadata.json
     ├── genai_config.json
+└── notebooks/
+    ├── Hiperpersonalização_com_Machine_Learning_e_IA_Generativa.ipynb
 ```
 
 ## 1. Criar ambiente 🥳

@@ -14,6 +14,31 @@
 #          ↓
 #   Experiência personalizada
 #
+# Estrutura da aplicação:
+#
+# 01. Importações
+# 02. Configuração de arquivos
+# 03. Features do modelo
+# 04. Configuração do Streamlit
+# 05. Identidade visual
+# 06. Carregamento dos dados
+# 07. Carregamento do modelo
+# 08. Configuração da IA
+# 09. Inicialização
+# 10. Funções auxiliares
+# 11. IA Generativa
+# 12. Simulador de cliente
+# 13. Hero
+# 14. Abas
+# 15. Experiência do cliente
+# 16. Motor de hiperpersonalização
+# 17. Racional técnico
+# 18. Jornada em tempo real
+# 19. Propensão
+# 20. Pipeline de IA
+# 21. Bastidores técnicos
+# 22. Footer
+#
 # ============================================================
 
 
@@ -24,7 +49,6 @@
 from pathlib import Path
 import json
 import os
-import zipfile
 
 import joblib
 import pandas as pd
@@ -34,6 +58,12 @@ import streamlit as st
 
 # ============================================================
 # GEMINI
+# ============================================================
+#
+# Gemini é opcional.
+#
+# Caso a biblioteca não esteja instalada, o restante da
+# aplicação continua funcionando.
 # ============================================================
 
 try:
@@ -46,21 +76,27 @@ except ImportError:
 # 02. CONFIGURAÇÃO DOS ARQUIVOS
 # ============================================================
 
+# Diretório onde o app.py está localizado.
 ROOT = Path(__file__).resolve().parent
 
-DATA_ZIP = ROOT / "ecommerce_hiperpersonalizacao_catalogo.zip"
 
-CSV_NAME = "ecommerce_hiperpersonalizacao_catalogo.csv"
+# Dataset do e-commerce.
+DATA = ROOT / "ecommerce_hiperpersonalizacao_catalogo.csv"
 
+
+# Pasta onde estão os modelos e configurações.
 MODELS = ROOT / "models"
-
-MODEL_PATH = MODELS / "propensity_model.joblib"
-
-GENAI_CONFIG_PATH = MODELS / "genai_config.json"
 
 
 # ============================================================
 # 03. FEATURES UTILIZADAS PELO MODELO
+# ============================================================
+#
+# Essas variáveis precisam estar na mesma estrutura esperada
+# pelo modelo salvo em:
+#
+# models/propensity_model.joblib
+#
 # ============================================================
 
 FEATURES = [
@@ -379,139 +415,83 @@ hr {
 # 06. CARREGAMENTO DOS DADOS
 # ============================================================
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_data():
-    """
-    Carrega o dataset diretamente de dentro do ZIP.
 
-    O CSV permanece compactado no projeto.
-    O DataFrame fica armazenado em cache pelo Streamlit.
-    """
-
-    if not DATA_ZIP.exists():
-
-        raise FileNotFoundError(
-            f"Dataset não encontrado: {DATA_ZIP}"
-        )
-
-    with zipfile.ZipFile(DATA_ZIP, "r") as z:
-
-        csv_files = [
-            name
-            for name in z.namelist()
-            if name.lower().endswith(".csv")
-        ]
-
-        if not csv_files:
-
-            raise FileNotFoundError(
-                "Nenhum arquivo CSV foi encontrado dentro "
-                "do ecommerce_hiperpersonalizacao_catalogo.zip."
-            )
-
-        csv_name = next(
-            (
-                name
-                for name in csv_files
-                if Path(name).name == CSV_NAME
-            ),
-            csv_files[0]
-        )
-
-        with z.open(csv_name) as f:
-
-            df = pd.read_csv(f)
-
-    return df
+    return pd.read_csv(DATA)
 
 
 # ============================================================
 # 07. CARREGAMENTO DO MODELO
 # ============================================================
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource
 def load_model():
-    """
-    Carrega o modelo de Machine Learning somente quando
-    ele realmente for necessário.
 
-    O modelo fica em cache como recurso do Streamlit.
-    """
-
-    if not MODEL_PATH.exists():
-
-        raise FileNotFoundError(
-            f"Modelo não encontrado: {MODEL_PATH}"
-        )
-
-    return joblib.load(MODEL_PATH)
+    return joblib.load(
+        MODELS / "propensity_model.joblib"
+    )
 
 
 # ============================================================
 # 08. CONFIGURAÇÃO DA IA GENERATIVA
 # ============================================================
+#
+# IMPORTANTE:
+#
+# Não existe mais:
+#
+# narrative_cache.json
+#
+# A narrativa é sempre gerada pelo Gemini no momento
+# em que o usuário clicar no botão.
+#
+# O único arquivo opcional aqui é:
+#
+# models/genai_config.json
+#
+# Ele serve apenas para informar qual modelo Gemini
+# será utilizado.
+#
+# ============================================================
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_genai_config():
-    """
-    Carrega a configuração do Gemini somente quando
-    a IA Generativa for utilizada.
-    """
 
-    if not GENAI_CONFIG_PATH.exists():
+    config_path = (
+        MODELS / "genai_config.json"
+    )
 
-        return {
-            "model": "gemini-2.5-flash"
-        }
+    config = {}
 
-    try:
 
-        config = json.loads(
-            GENAI_CONFIG_PATH.read_text(
-                encoding="utf-8"
+    if config_path.exists():
+
+        try:
+
+            config = json.loads(
+                config_path.read_text(
+                    encoding="utf-8"
+                )
             )
-        )
 
-        return config
+        except Exception:
 
-    except Exception:
+            config = {}
 
-        return {
-            "model": "gemini-2.5-flash"
-        }
+
+    return config
 
 
 # ============================================================
 # 09. INICIALIZAÇÃO
 # ============================================================
-#
-# IMPORTANTE:
-#
-# O modelo NÃO é carregado aqui.
-#
-# O Gemini NÃO é carregado aqui.
-#
-# O modelo só será carregado quando customer_score()
-# for chamado.
-#
-# Isso reduz o trabalho realizado durante o startup.
-# ============================================================
 
-try:
+df = load_data()
 
-    df = load_data()
+model = load_model()
 
-except Exception as e:
-
-    st.error(
-        "Não foi possível carregar o dataset."
-    )
-
-    st.code(
-        str(e)
-    )
-
-    st.stop()
+genai_config = load_genai_config()
 
 
 # ============================================================
@@ -524,14 +504,13 @@ except Exception as e:
 # ------------------------------------------------------------
 
 def parse_log(raw):
+    """
+    Converte o log de acesso armazenado em JSON
+    para uma lista Python.
 
-    if raw is None:
-
-        return []
-
-    if isinstance(raw, list):
-
-        return raw
+    Caso o conteúdo não seja válido, retorna uma
+    lista vazia.
+    """
 
     try:
 
@@ -543,10 +522,99 @@ def parse_log(raw):
 
 
 # ------------------------------------------------------------
+# HISTÓRICO COMPLETO DO CLIENTE (TODAS AS SESSÕES)
+# ------------------------------------------------------------
+
+def all_customer_events(customer):
+    """
+    Reúne os eventos de log_acesso de TODAS as sessões
+    (linhas) do cliente selecionado, não apenas da última.
+
+    Cada linha do dataset representa uma sessão distinta,
+    então olhar só a última sessão perde parte do histórico
+    real de navegação do cliente.
+
+    Os eventos são ordenados cronologicamente pelo timestamp,
+    para que a recência possa ser usada como critério de peso.
+    """
+
+    all_events = []
+
+    for raw in customer["log_acesso"].dropna():
+
+        all_events.extend(
+            parse_log(raw)
+        )
+
+    all_events.sort(
+        key=lambda ev: ev.get("timestamp", "")
+    )
+
+    return all_events
+
+
+# ------------------------------------------------------------
+# ATIVIDADE POR PRODUTO (VISUALIZAÇÕES X CLIQUES)
+# ------------------------------------------------------------
+
+def build_product_activity(events):
+    """
+    Agrega os eventos do log de acesso por produto,
+    separando visualizações de cliques.
+
+    Eventos cuja ação não seja identificável como
+    visualização ou clique são contabilizados como
+    visualização (comportamento mais conservador).
+    """
+
+    activity = {}
+
+    for ev in events:
+
+        prod = str(
+            ev.get(
+                "produto",
+                "Produto"
+            )
+        )
+
+        acao = str(
+            ev.get(
+                "acao",
+                ""
+            )
+        ).lower()
+
+        if "cli" in acao:
+
+            tipo = "Clicado"
+
+        else:
+
+            tipo = "Visualizado"
+
+        activity.setdefault(
+            prod,
+            {"Visualizado": 0, "Clicado": 0}
+        )
+
+        activity[prod][tipo] += 1
+
+    return activity
+
+
+# ------------------------------------------------------------
 # FORMATAÇÃO MONETÁRIA
 # ------------------------------------------------------------
 
 def money(value):
+    """
+    Converte um número para o formato monetário brasileiro.
+
+    Exemplo:
+
+    149.90 → R$ 149,90
+    """
 
     return (
         f"R$ {float(value):,.2f}"
@@ -561,6 +629,10 @@ def money(value):
 # ------------------------------------------------------------
 
 def get_customer(cid):
+    """
+    Retorna todas as observações disponíveis
+    para o cliente selecionado.
+    """
 
     return df[
         df["cliente_id"] == cid
@@ -575,10 +647,9 @@ def customer_score(customer):
     """
     Executa o modelo de Machine Learning.
 
-    O modelo só é carregado neste momento.
+    O modelo retorna a probabilidade da classe positiva
+    e calculamos a média das observações daquele cliente.
     """
-
-    model = load_model()
 
     return float(
         model.predict_proba(
@@ -588,75 +659,140 @@ def customer_score(customer):
 
 
 # ------------------------------------------------------------
+# PESO POR TIPO DE AÇÃO
+# ------------------------------------------------------------
+#
+# Ações com maior intenção de compra pesam mais na escolha
+# do produto candidato.
+# ------------------------------------------------------------
+
+ACTION_WEIGHTS = {
+    "adicionou_carrinho": 4.0,
+    "clicou": 2.0,
+    "pesquisou": 1.5,
+    "visualizou": 1.0,
+}
+
+
+# ------------------------------------------------------------
 # PRODUTO CANDIDATO
 # ------------------------------------------------------------
 
-def candidate_product(customer):
-
-    values = (
-        customer["produto_maior_interesse"]
-        .dropna()
-        .astype(str)
-    )
-
-    if values.empty:
-
-        return "Produto personalizado"
-
-    return values.mode().iloc[0]
-
-
-# ------------------------------------------------------------
-# ANÁLISE COMPLETA DO CLIENTE
-# ------------------------------------------------------------
-
-@st.cache_data(show_spinner=False)
-def get_customer_analysis(cid):
+def candidate_product(events):
     """
-    Consolida os cálculos do cliente.
+    Identifica o produto mais relevante com base no histórico
+    real de navegação do cliente (log_acesso), em vez de uma
+    coluna auxiliar desacoplada do comportamento observado.
 
-    Isso evita executar novamente toda a análise
-    desnecessariamente a cada interação.
+    Cada evento contribui para a pontuação do produto de
+    acordo com:
+
+    - o tipo de ação (carrinho > clique > busca > visualização);
+    - a recência (eventos mais recentes pesam mais).
+
+    O produto e a categoria retornados vêm do MESMO evento,
+    então o resultado é sempre coerente com o catálogo
+    (ex.: nunca retorna um produto de "moda" com categoria
+    "eletrônicos").
     """
 
-    customer = get_customer(cid)
+    if not events:
 
-    if customer.empty:
+        return "Produto personalizado", ""
 
-        raise ValueError(
-            f"Cliente {cid} não encontrado."
+
+    scores = {}
+
+    last_seen = {}
+
+    n = len(events)
+
+
+    for i, ev in enumerate(events):
+
+        produto = str(
+            ev.get("produto", "")
+        ).strip()
+
+        if not produto:
+
+            continue
+
+
+        acao = str(
+            ev.get("acao", "")
+        ).lower()
+
+        peso_acao = ACTION_WEIGHTS.get(
+            acao,
+            1.0
         )
 
-    row = customer.iloc[-1]
+        # Recência: eventos mais recentes (índice maior,
+        # já que a lista está ordenada cronologicamente)
+        # recebem um peso maior, entre 1x e 2x.
+        peso_recencia = 1 + (
+            i / max(n - 1, 1)
+        )
 
-    probability = customer_score(
-        customer
+        scores[produto] = (
+            scores.get(produto, 0.0)
+            + peso_acao * peso_recencia
+        )
+
+        # Guarda o evento mais recente de cada produto, para
+        # recuperar a categoria correta depois.
+        last_seen[produto] = ev
+
+
+    if not scores:
+
+        return "Produto personalizado", ""
+
+
+    produto_escolhido = max(
+        scores,
+        key=scores.get
     )
 
-    product = candidate_product(
-        customer
+    categoria = str(
+        last_seen[produto_escolhido].get(
+            "categoria",
+            ""
+        )
     )
 
-    return (
-        customer,
-        row,
-        probability,
-        product
-    )
+    return produto_escolhido, categoria
 
 
 # ============================================================
 # 11. IA GENERATIVA
 # ============================================================
+#
+# Essa função chama o Gemini diretamente.
+#
+# NÃO existe cache de narrativa.
+#
+# Cada clique no botão:
+#
+#    BOTÃO
+#      ↓
+#    GEMINI
+#      ↓
+#    NOVA NARRATIVA
+#
+# ============================================================
 
 def live_narrative(
     row,
     product,
-    probability
+    probability,
+    events=None,
+    product_categoria=None,
 ):
 
     # --------------------------------------------------------
-    # Recupera API Key
+    # Recupera a API Key
     # --------------------------------------------------------
 
     api_key = os.getenv(
@@ -665,7 +801,7 @@ def live_narrative(
 
 
     # --------------------------------------------------------
-    # Verifica API Key
+    # Verifica disponibilidade do Gemini
     # --------------------------------------------------------
 
     if not api_key:
@@ -676,24 +812,30 @@ def live_narrative(
         )
 
 
-    # --------------------------------------------------------
-    # Verifica biblioteca
-    # --------------------------------------------------------
-
     if genai is None:
 
         return None, (
-            "A biblioteca google-genai não está instalada."
+            "A biblioteca google-genai não está instalada. "
+            "Instale com: pip install google-genai"
         )
 
 
     # --------------------------------------------------------
-    # Recupera eventos
+    # Recupera os eventos mais recentes
+    # --------------------------------------------------------
+    #
+    # Se o histórico completo do cliente (todas as sessões)
+    # for informado, usamos ele. Caso contrário, caímos de
+    # volta para o log da última sessão (compatibilidade).
     # --------------------------------------------------------
 
-    events = parse_log(
-        row["log_acesso"]
-    )[-12:]
+    if events is None:
+
+        events = parse_log(
+            row["log_acesso"]
+        )
+
+    events = events[-12:]
 
 
     # ========================================================
@@ -744,6 +886,9 @@ para este cliente neste momento.
 Produto destacado:
 "{product}"
 
+Categoria do produto destacado:
+{product_categoria or row["categoria_principal"]}
+
 Sinais observados:
 
 Categoria principal:
@@ -790,13 +935,6 @@ REGRAS:
 
     try:
 
-        # ----------------------------------------------------
-        # Configuração carregada somente neste momento
-        # ----------------------------------------------------
-
-        genai_config = load_genai_config()
-
-
         client = genai.Client(
             api_key=api_key
         )
@@ -841,6 +979,10 @@ REGRAS:
 
 with st.sidebar:
 
+    # --------------------------------------------------------
+    # Identidade
+    # --------------------------------------------------------
+
     st.markdown(
         "## ✦ NOVA+"
     )
@@ -875,29 +1017,43 @@ with st.sidebar:
 
 
     # --------------------------------------------------------
-    # Recupera análise do cliente
+    # Recupera dados do cliente
     # --------------------------------------------------------
 
-    try:
+    customer = get_customer(cid)
 
-        (
-            customer,
-            row,
-            probability,
-            product
-        ) = get_customer_analysis(cid)
+    row = customer.iloc[-1]
 
-    except Exception as e:
 
-        st.error(
-            "Não foi possível analisar este cliente."
-        )
+    # --------------------------------------------------------
+    # Calcula propensão
+    # --------------------------------------------------------
 
-        st.code(
-            str(e)
-        )
+    probability = customer_score(
+        customer
+    )
 
-        st.stop()
+
+    # --------------------------------------------------------
+    # Histórico completo de navegação (todas as sessões)
+    # --------------------------------------------------------
+
+    customer_events = all_customer_events(
+        customer
+    )
+
+
+    # --------------------------------------------------------
+    # Identifica produto candidato
+    # --------------------------------------------------------
+    #
+    # O produto e a categoria vêm do mesmo evento de log,
+    # garantindo coerência entre eles.
+    # --------------------------------------------------------
+
+    product, product_categoria = candidate_product(
+        customer_events
+    )
 
 
     st.divider()
@@ -1031,20 +1187,15 @@ with tab_experience:
     # PRODUTOS RECOMENDADOS
     # ========================================================
 
-    try:
-
-        price = float(
+    price = (
+        float(
             row["preco_medio_produto"]
         )
-
-    except Exception:
-
-        price = 99.90
-
-
-    if price <= 0:
-
-        price = 99.90
+        if float(
+            row["preco_medio_produto"]
+        ) > 0
+        else 99.90
+    )
 
 
     # --------------------------------------------------------
@@ -1087,7 +1238,7 @@ with tab_experience:
 
 
     # --------------------------------------------------------
-    # Quatro colunas
+    # Cria quatro colunas
     # --------------------------------------------------------
 
     cols = st.columns(4)
@@ -1148,6 +1299,10 @@ with tab_experience:
                 st.write("")
 
 
+                # ------------------------------------------------
+                # Botão de interação
+                # ------------------------------------------------
+
                 if st.button(
                     "Explorar",
                     key=f"explore_{cid}_{i}"
@@ -1197,13 +1352,29 @@ with tab_experience:
     )
 
 
-    generated = None
-    generation_error = None
-
-
     # ========================================================
     # GERAÇÃO DA NARRATIVA
     # ========================================================
+    #
+    # IMPORTANTE:
+    #
+    # A cada clique:
+    #
+    #     botão
+    #       ↓
+    #     live_narrative()
+    #       ↓
+    #     Gemini
+    #       ↓
+    #     nova narrativa
+    #
+    # Não existe narrative_cache.json.
+    #
+    # ========================================================
+
+    generated = None
+    generation_error = None
+
 
     if ai_clicked:
 
@@ -1214,7 +1385,9 @@ with tab_experience:
             generated, generation_error = live_narrative(
                 row,
                 product,
-                probability
+                probability,
+                events=customer_events,
+                product_categoria=product_categoria,
             )
 
 
@@ -1234,6 +1407,10 @@ with tab_experience:
         st.write("")
 
 
+        # ----------------------------------------------------
+        # Comunicação baseada na propensão
+        # ----------------------------------------------------
+
         if probability >= 0.80:
 
             st.success(
@@ -1248,6 +1425,10 @@ with tab_experience:
                 "Comunicação consultiva"
             )
 
+
+        # ----------------------------------------------------
+        # Card da narrativa
+        # ----------------------------------------------------
 
         with st.container(
             border=True
@@ -1264,7 +1445,7 @@ with tab_experience:
 
 
 # ============================================================
-# 17. RACIONAL
+# 18. RACIONAL
 # ============================================================
 
 with tab_rationale:
@@ -1283,7 +1464,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 18. SINAIS UTILIZADOS
+    # 19. SINAIS UTILIZADOS
     # ========================================================
 
     st.markdown(
@@ -1350,7 +1531,11 @@ with tab_rationale:
         st.metric(
             "CANDIDATO",
             product,
-            "produto mais aderente"
+            (
+                f"categoria: {product_categoria}"
+                if product_categoria
+                else "produto mais aderente"
+            )
         )
 
 
@@ -1362,7 +1547,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 19. JORNADA EM TEMPO REAL
+    # 20. JORNADA EM TEMPO REAL
     # ========================================================
 
     left, right = st.columns(
@@ -1386,54 +1571,117 @@ with tab_rationale:
         )
 
 
-        events = parse_log(
-            row["log_acesso"]
+        # ----------------------------------------------------
+        # Recupera os eventos de todas as sessões do cliente
+        # ----------------------------------------------------
+
+        events = customer_events
+
+
+        # ----------------------------------------------------
+        # Agrega produtos visualizados e clicados
+        # ----------------------------------------------------
+
+        recent_events = events[-30:]
+
+        activity = build_product_activity(
+            recent_events
         )
 
 
-        if events:
+        if activity:
 
-            recent = events[-10:]
+            products = list(
+                activity.keys()
+            )
+
+            visual_counts = [
+                activity[p]["Visualizado"]
+                for p in products
+            ]
+
+            click_counts = [
+                activity[p]["Clicado"]
+                for p in products
+            ]
 
 
-            for ev in reversed(recent):
+            fig_events = go.Figure()
 
-                action = str(
-                    ev.get(
-                        "acao",
-                        "interagiu"
-                    )
+
+            fig_events.add_trace(
+                go.Bar(
+                    x=products,
+                    y=visual_counts,
+                    name="Visualizado",
+                    marker_color="#00D2FF",
                 )
+            )
 
 
-                prod = str(
-                    ev.get(
-                        "produto",
-                        "conteúdo"
-                    )
+            fig_events.add_trace(
+                go.Bar(
+                    x=products,
+                    y=click_counts,
+                    name="Clicado",
+                    marker_color="#A98BFF",
                 )
+            )
 
 
-                category = str(
-                    ev.get(
-                        "categoria",
-                        ""
-                    )
-                )
+            fig_events.update_layout(
+
+                barmode="group",
+
+                height=320,
+
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=40,
+                    b=10
+                ),
+
+                paper_bgcolor="rgba(0,0,0,0)",
+
+                plot_bgcolor="rgba(0,0,0,0)",
+
+                font={
+                    "color": "white"
+                },
+
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+
+                xaxis=dict(
+                    tickangle=-30,
+                    gridcolor="rgba(255,255,255,.06)",
+                ),
+
+                yaxis=dict(
+                    gridcolor="rgba(255,255,255,.06)",
+                    title="Ocorrências",
+                ),
+
+                template="plotly_dark",
+            )
 
 
-                with st.container(
-                    border=True
-                ):
+            st.plotly_chart(
 
-                    st.markdown(
-                        f"**{action.upper()}**"
-                    )
+                fig_events,
 
+                use_container_width=True,
 
-                    st.caption(
-                        f"{prod} · {category}"
-                    )
+                config={
+                    "displayModeBar": False
+                }
+            )
 
 
         else:
@@ -1444,7 +1692,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 20. PROPENSÃO
+    # 21. PROPENSÃO
     # ========================================================
 
     with right:
@@ -1463,63 +1711,99 @@ with tab_rationale:
 
 
         # ====================================================
-        # GAUGE
+        # COR DINÂMICA DA PROPENSÃO
+        # ====================================================
+        #
+        # Verde  → propensão ≥ 80%
+        # Amarelo → propensão < 80%
         # ====================================================
 
-        fig = go.Figure(
-
-            go.Indicator(
-
-                mode="gauge+number",
-
-                value=probability * 100,
-
-                number={
-                    "suffix": "%",
-                    "font": {
-                        "size": 42
-                    }
-                },
-
-                title={
-                    "text": "Propensão de conversão",
-                    "font": {
-                        "size": 16
-                    }
-                },
-
-                gauge={
-
-                    "axis": {
-                        "range": [0, 100]
-                    },
-
-                    "bar": {
-                        "thickness": 0.28
-                    },
-
-                    "steps": [
-
-                        {
-                            "range": [0, 40]
-                        },
-
-                        {
-                            "range": [40, 70]
-                        },
-
-                        {
-                            "range": [70, 100]
-                        },
-
-                    ],
-                },
-            )
+        prop_color = (
+            "#22C55E"
+            if probability >= 0.80
+            else "#F5B942"
         )
 
 
         # ====================================================
-        # CONFIGURAÇÃO VISUAL DO GAUGE
+        # ANEL COM A PROPENSÃO CENTRALIZADA
+        # ====================================================
+
+        fig = go.Figure(
+
+            go.Pie(
+
+                values=[
+                    probability,
+                    1 - probability
+                ],
+
+                hole=0.72,
+
+                marker={
+                    "colors": [
+                        prop_color,
+                        "rgba(255,255,255,.08)"
+                    ]
+                },
+
+                textinfo="none",
+
+                hoverinfo="skip",
+
+                sort=False,
+
+                direction="clockwise",
+
+                rotation=0,
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # Número da propensão centralizado no gráfico
+        # ----------------------------------------------------
+
+        fig.add_annotation(
+
+            text=f"<b>{probability:.0%}</b>",
+
+            x=0.5,
+            y=0.54,
+
+            xref="paper",
+            yref="paper",
+
+            showarrow=False,
+
+            font={
+                "size": 46,
+                "color": prop_color,
+            },
+        )
+
+
+        fig.add_annotation(
+
+            text="Propensão de conversão",
+
+            x=0.5,
+            y=0.40,
+
+            xref="paper",
+            yref="paper",
+
+            showarrow=False,
+
+            font={
+                "size": 13,
+                "color": "#8F98AA",
+            },
+        )
+
+
+        # ====================================================
+        # CONFIGURAÇÃO VISUAL DO ANEL
         # ====================================================
 
         fig.update_layout(
@@ -1529,11 +1813,15 @@ with tab_rationale:
             margin=dict(
                 l=20,
                 r=20,
-                t=60,
+                t=40,
                 b=20
             ),
 
             paper_bgcolor="rgba(0,0,0,0)",
+
+            plot_bgcolor="rgba(0,0,0,0)",
+
+            showlegend=False,
 
             font={
                 "color": "white"
@@ -1542,6 +1830,10 @@ with tab_rationale:
             template="plotly_dark",
         )
 
+
+        # ----------------------------------------------------
+        # Renderiza gráfico
+        # ----------------------------------------------------
 
         st.plotly_chart(
 
@@ -1572,7 +1864,7 @@ incisiva e orientada à conversão.
 
         else:
 
-            st.info(
+            st.warning(
                 f"""
 **PROPENSÃO MODERADA · {probability:.0%}**
 
@@ -1590,7 +1882,7 @@ leve e exploratória.
 
 
     # ========================================================
-    # 21. PIPELINE
+    # 22. PIPELINE
     # ========================================================
 
     st.markdown(
@@ -1670,11 +1962,12 @@ leve e exploratória.
 
 
     st.write("")
+
     st.write("")
 
 
     # ========================================================
-    # 22. BASTIDORES TÉCNICOS
+    # 23. BASTIDORES TÉCNICOS
     # ========================================================
 
     with st.expander(
@@ -1733,10 +2026,11 @@ Comunicação consultiva e exploratória.
 
 
 # ============================================================
-# 23. FOOTER
+# 24. FOOTER
 # ============================================================
 
 st.write("")
+
 st.write("")
 
 
