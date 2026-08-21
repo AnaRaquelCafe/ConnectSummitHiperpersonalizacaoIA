@@ -1,9 +1,9 @@
 # NOVA+ HyperCommerce — palestra
 # Python recomendado: 3.11 ou 3.12
-streamlit
-pandas
-plotly
-joblib
-scikit-learn==1.5.2
-xgboost==2.1.1
-google-genai
+streamlit==1.48.0
+pandas==2.3.2
+plotly==6.3.0
+joblib==1.5.2
+scikit-learn==1.7.1
+xgboost==3.0.5
+google-genai==1.31.0

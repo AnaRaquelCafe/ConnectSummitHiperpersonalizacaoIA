@@ -19,7 +19,6 @@ ConnectSummitHiperpersonalizacaoIA/
     ├── propensity_model.joblib
     ├── model_metadata.json
     ├── genai_config.json
-    └── narrative_cache.json
 ```
 
 ## 1. Criar ambiente 🥳
