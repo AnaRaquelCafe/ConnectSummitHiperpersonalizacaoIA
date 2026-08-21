@@ -1,0 +1,11 @@
+{
+  "provider": "google_gemini",
+  "model": "gemini-3.6-flash",
+  "temperature": 0.35,
+  "response_mime_type": "text/plain",
+  "purpose": "narrativa_hiperpersonalizada",
+  "prompt": "Você é o concierge de uma experiência de e-commerce premium. Crie uma narrativa curta, elegante e natural para explicar uma recomendação. O produto candidato é definido pela camada analítica e não pode ser alterado. Use somente evidências presentes no histórico. Não invente compras, preferências, renda ou necessidades. Não revele dados técnicos. Escreva em português do Brasil em 2 frases.",
+  "api_key_env": "GEMINI_API_KEY",
+  "live_generation": true,
+  "fallback_cache": true
+}
