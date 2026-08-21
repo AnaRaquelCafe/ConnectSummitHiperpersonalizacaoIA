@@ -14,31 +14,6 @@
 #          ↓
 #   Experiência personalizada
 #
-# Estrutura da aplicação:
-#
-# 01. Importações
-# 02. Configuração de arquivos
-# 03. Features do modelo
-# 04. Configuração do Streamlit
-# 05. Identidade visual
-# 06. Carregamento dos dados
-# 07. Carregamento do modelo
-# 08. Configuração da IA
-# 09. Inicialização
-# 10. Funções auxiliares
-# 11. IA Generativa
-# 12. Simulador de cliente
-# 13. Hero
-# 14. Abas
-# 15. Experiência do cliente
-# 16. Motor de hiperpersonalização
-# 17. Racional técnico
-# 18. Jornada em tempo real
-# 19. Propensão
-# 20. Pipeline de IA
-# 21. Bastidores técnicos
-# 22. Footer
-#
 # ============================================================
 
 
@@ -49,22 +24,16 @@
 from pathlib import Path
 import json
 import os
+import zipfile
 
 import joblib
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import zipfile
 
 
 # ============================================================
 # GEMINI
-# ============================================================
-#
-# Gemini é opcional.
-#
-# Caso a biblioteca não esteja instalada, o restante da
-# aplicação continua funcionando.
 # ============================================================
 
 try:
@@ -77,29 +46,21 @@ except ImportError:
 # 02. CONFIGURAÇÃO DOS ARQUIVOS
 # ============================================================
 
-# Diretório onde o app.py está localizado.
 ROOT = Path(__file__).resolve().parent
 
-
-# Dataset do e-commerce.
-#DATA = ROOT / "ecommerce_hiperpersonalizacao_catalogo.csv"
 DATA_ZIP = ROOT / "ecommerce_hiperpersonalizacao_catalogo.zip"
 
 CSV_NAME = "ecommerce_hiperpersonalizacao_catalogo.csv"
 
-# Pasta onde estão os modelos e configurações.
 MODELS = ROOT / "models"
+
+MODEL_PATH = MODELS / "propensity_model.joblib"
+
+GENAI_CONFIG_PATH = MODELS / "genai_config.json"
 
 
 # ============================================================
 # 03. FEATURES UTILIZADAS PELO MODELO
-# ============================================================
-#
-# Essas variáveis precisam estar na mesma estrutura esperada
-# pelo modelo salvo em:
-#
-# models/propensity_model.joblib
-#
 # ============================================================
 
 FEATURES = [
@@ -418,18 +379,13 @@ hr {
 # 06. CARREGAMENTO DOS DADOS
 # ============================================================
 
-# @st.cache_data
-# def load_data():
-
-#     return pd.read_csv(DATA)
-
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_data():
     """
-    Carrega o dataset diretamente de dentro do arquivo ZIP.
+    Carrega o dataset diretamente de dentro do ZIP.
 
-    O CSV não precisa ser descompactado no projeto.
-    Isso permite manter o dataset compactado no GitHub.
+    O CSV permanece compactado no projeto.
+    O DataFrame fica armazenado em cache pelo Streamlit.
     """
 
     if not DATA_ZIP.exists():
@@ -439,10 +395,6 @@ def load_data():
         )
 
     with zipfile.ZipFile(DATA_ZIP, "r") as z:
-
-        # ----------------------------------------------------
-        # Procura o CSV dentro do ZIP
-        # ----------------------------------------------------
 
         csv_files = [
             name
@@ -457,10 +409,6 @@ def load_data():
                 "do ecommerce_hiperpersonalizacao_catalogo.zip."
             )
 
-        # ----------------------------------------------------
-        # Prioriza o nome esperado
-        # ----------------------------------------------------
-
         csv_name = next(
             (
                 name
@@ -469,10 +417,6 @@ def load_data():
             ),
             csv_files[0]
         )
-
-        # ----------------------------------------------------
-        # Lê o CSV diretamente do ZIP
-        # ----------------------------------------------------
 
         with z.open(csv_name) as f:
 
@@ -485,73 +429,89 @@ def load_data():
 # 07. CARREGAMENTO DO MODELO
 # ============================================================
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_model():
+    """
+    Carrega o modelo de Machine Learning somente quando
+    ele realmente for necessário.
 
-    return joblib.load(
-        MODELS / "propensity_model.joblib"
-    )
+    O modelo fica em cache como recurso do Streamlit.
+    """
+
+    if not MODEL_PATH.exists():
+
+        raise FileNotFoundError(
+            f"Modelo não encontrado: {MODEL_PATH}"
+        )
+
+    return joblib.load(MODEL_PATH)
 
 
 # ============================================================
 # 08. CONFIGURAÇÃO DA IA GENERATIVA
 # ============================================================
-#
-# IMPORTANTE:
-#
-# Não existe mais:
-#
-# narrative_cache.json
-#
-# A narrativa é sempre gerada pelo Gemini no momento
-# em que o usuário clicar no botão.
-#
-# O único arquivo opcional aqui é:
-#
-# models/genai_config.json
-#
-# Ele serve apenas para informar qual modelo Gemini
-# será utilizado.
-#
-# ============================================================
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_genai_config():
+    """
+    Carrega a configuração do Gemini somente quando
+    a IA Generativa for utilizada.
+    """
 
-    config_path = (
-        MODELS / "genai_config.json"
-    )
+    if not GENAI_CONFIG_PATH.exists():
 
-    config = {}
+        return {
+            "model": "gemini-2.5-flash"
+        }
 
+    try:
 
-    if config_path.exists():
-
-        try:
-
-            config = json.loads(
-                config_path.read_text(
-                    encoding="utf-8"
-                )
+        config = json.loads(
+            GENAI_CONFIG_PATH.read_text(
+                encoding="utf-8"
             )
+        )
 
-        except Exception:
+        return config
 
-            config = {}
+    except Exception:
 
-
-    return config
+        return {
+            "model": "gemini-2.5-flash"
+        }
 
 
 # ============================================================
 # 09. INICIALIZAÇÃO
 # ============================================================
+#
+# IMPORTANTE:
+#
+# O modelo NÃO é carregado aqui.
+#
+# O Gemini NÃO é carregado aqui.
+#
+# O modelo só será carregado quando customer_score()
+# for chamado.
+#
+# Isso reduz o trabalho realizado durante o startup.
+# ============================================================
 
-df = load_data()
+try:
 
-model = load_model()
+    df = load_data()
 
-genai_config = load_genai_config()
+except Exception as e:
+
+    st.error(
+        "Não foi possível carregar o dataset."
+    )
+
+    st.code(
+        str(e)
+    )
+
+    st.stop()
 
 
 # ============================================================
@@ -564,13 +524,14 @@ genai_config = load_genai_config()
 # ------------------------------------------------------------
 
 def parse_log(raw):
-    """
-    Converte o log de acesso armazenado em JSON
-    para uma lista Python.
 
-    Caso o conteúdo não seja válido, retorna uma
-    lista vazia.
-    """
+    if raw is None:
+
+        return []
+
+    if isinstance(raw, list):
+
+        return raw
 
     try:
 
@@ -586,13 +547,6 @@ def parse_log(raw):
 # ------------------------------------------------------------
 
 def money(value):
-    """
-    Converte um número para o formato monetário brasileiro.
-
-    Exemplo:
-
-    149.90 → R$ 149,90
-    """
 
     return (
         f"R$ {float(value):,.2f}"
@@ -607,10 +561,6 @@ def money(value):
 # ------------------------------------------------------------
 
 def get_customer(cid):
-    """
-    Retorna todas as observações disponíveis
-    para o cliente selecionado.
-    """
 
     return df[
         df["cliente_id"] == cid
@@ -625,9 +575,10 @@ def customer_score(customer):
     """
     Executa o modelo de Machine Learning.
 
-    O modelo retorna a probabilidade da classe positiva
-    e calculamos a média das observações daquele cliente.
+    O modelo só é carregado neste momento.
     """
+
+    model = load_model()
 
     return float(
         model.predict_proba(
@@ -641,12 +592,6 @@ def customer_score(customer):
 # ------------------------------------------------------------
 
 def candidate_product(customer):
-    """
-    Identifica o produto de maior interesse do cliente.
-
-    Utilizamos a moda para encontrar o produto que aparece
-    com maior frequência nas observações do cliente.
-    """
 
     values = (
         customer["produto_maior_interesse"]
@@ -654,31 +599,54 @@ def candidate_product(customer):
         .astype(str)
     )
 
-
     if values.empty:
 
         return "Produto personalizado"
 
-
     return values.mode().iloc[0]
+
+
+# ------------------------------------------------------------
+# ANÁLISE COMPLETA DO CLIENTE
+# ------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def get_customer_analysis(cid):
+    """
+    Consolida os cálculos do cliente.
+
+    Isso evita executar novamente toda a análise
+    desnecessariamente a cada interação.
+    """
+
+    customer = get_customer(cid)
+
+    if customer.empty:
+
+        raise ValueError(
+            f"Cliente {cid} não encontrado."
+        )
+
+    row = customer.iloc[-1]
+
+    probability = customer_score(
+        customer
+    )
+
+    product = candidate_product(
+        customer
+    )
+
+    return (
+        customer,
+        row,
+        probability,
+        product
+    )
 
 
 # ============================================================
 # 11. IA GENERATIVA
-# ============================================================
-#
-# Essa função chama o Gemini diretamente.
-#
-# NÃO existe cache de narrativa.
-#
-# Cada clique no botão:
-#
-#    BOTÃO
-#      ↓
-#    GEMINI
-#      ↓
-#    NOVA NARRATIVA
-#
 # ============================================================
 
 def live_narrative(
@@ -688,7 +656,7 @@ def live_narrative(
 ):
 
     # --------------------------------------------------------
-    # Recupera a API Key
+    # Recupera API Key
     # --------------------------------------------------------
 
     api_key = os.getenv(
@@ -697,7 +665,7 @@ def live_narrative(
 
 
     # --------------------------------------------------------
-    # Verifica disponibilidade do Gemini
+    # Verifica API Key
     # --------------------------------------------------------
 
     if not api_key:
@@ -708,16 +676,19 @@ def live_narrative(
         )
 
 
+    # --------------------------------------------------------
+    # Verifica biblioteca
+    # --------------------------------------------------------
+
     if genai is None:
 
         return None, (
-            "A biblioteca google-genai não está instalada. "
-            "Instale com: pip install google-genai"
+            "A biblioteca google-genai não está instalada."
         )
 
 
     # --------------------------------------------------------
-    # Recupera os eventos mais recentes
+    # Recupera eventos
     # --------------------------------------------------------
 
     events = parse_log(
@@ -819,6 +790,13 @@ REGRAS:
 
     try:
 
+        # ----------------------------------------------------
+        # Configuração carregada somente neste momento
+        # ----------------------------------------------------
+
+        genai_config = load_genai_config()
+
+
         client = genai.Client(
             api_key=api_key
         )
@@ -863,10 +841,6 @@ REGRAS:
 
 with st.sidebar:
 
-    # --------------------------------------------------------
-    # Identidade
-    # --------------------------------------------------------
-
     st.markdown(
         "## ✦ NOVA+"
     )
@@ -901,30 +875,29 @@ with st.sidebar:
 
 
     # --------------------------------------------------------
-    # Recupera dados do cliente
+    # Recupera análise do cliente
     # --------------------------------------------------------
 
-    customer = get_customer(cid)
+    try:
 
-    row = customer.iloc[-1]
+        (
+            customer,
+            row,
+            probability,
+            product
+        ) = get_customer_analysis(cid)
 
+    except Exception as e:
 
-    # --------------------------------------------------------
-    # Calcula propensão
-    # --------------------------------------------------------
+        st.error(
+            "Não foi possível analisar este cliente."
+        )
 
-    probability = customer_score(
-        customer
-    )
+        st.code(
+            str(e)
+        )
 
-
-    # --------------------------------------------------------
-    # Identifica produto candidato
-    # --------------------------------------------------------
-
-    product = candidate_product(
-        customer
-    )
+        st.stop()
 
 
     st.divider()
@@ -1058,15 +1031,20 @@ with tab_experience:
     # PRODUTOS RECOMENDADOS
     # ========================================================
 
-    price = (
-        float(
+    try:
+
+        price = float(
             row["preco_medio_produto"]
         )
-        if float(
-            row["preco_medio_produto"]
-        ) > 0
-        else 99.90
-    )
+
+    except Exception:
+
+        price = 99.90
+
+
+    if price <= 0:
+
+        price = 99.90
 
 
     # --------------------------------------------------------
@@ -1109,7 +1087,7 @@ with tab_experience:
 
 
     # --------------------------------------------------------
-    # Cria quatro colunas
+    # Quatro colunas
     # --------------------------------------------------------
 
     cols = st.columns(4)
@@ -1170,10 +1148,6 @@ with tab_experience:
                 st.write("")
 
 
-                # ------------------------------------------------
-                # Botão de interação
-                # ------------------------------------------------
-
                 if st.button(
                     "Explorar",
                     key=f"explore_{cid}_{i}"
@@ -1223,29 +1197,13 @@ with tab_experience:
     )
 
 
-    # ========================================================
-    # GERAÇÃO DA NARRATIVA
-    # ========================================================
-    #
-    # IMPORTANTE:
-    #
-    # A cada clique:
-    #
-    #     botão
-    #       ↓
-    #     live_narrative()
-    #       ↓
-    #     Gemini
-    #       ↓
-    #     nova narrativa
-    #
-    # Não existe narrative_cache.json.
-    #
-    # ========================================================
-
     generated = None
     generation_error = None
 
+
+    # ========================================================
+    # GERAÇÃO DA NARRATIVA
+    # ========================================================
 
     if ai_clicked:
 
@@ -1276,10 +1234,6 @@ with tab_experience:
         st.write("")
 
 
-        # ----------------------------------------------------
-        # Comunicação baseada na propensão
-        # ----------------------------------------------------
-
         if probability >= 0.80:
 
             st.success(
@@ -1294,10 +1248,6 @@ with tab_experience:
                 "Comunicação consultiva"
             )
 
-
-        # ----------------------------------------------------
-        # Card da narrativa
-        # ----------------------------------------------------
 
         with st.container(
             border=True
@@ -1314,7 +1264,7 @@ with tab_experience:
 
 
 # ============================================================
-# 18. RACIONAL
+# 17. RACIONAL
 # ============================================================
 
 with tab_rationale:
@@ -1333,7 +1283,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 19. SINAIS UTILIZADOS
+    # 18. SINAIS UTILIZADOS
     # ========================================================
 
     st.markdown(
@@ -1412,7 +1362,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 20. JORNADA EM TEMPO REAL
+    # 19. JORNADA EM TEMPO REAL
     # ========================================================
 
     left, right = st.columns(
@@ -1435,10 +1385,6 @@ with tab_rationale:
             "Os últimos sinais observados no comportamento."
         )
 
-
-        # ----------------------------------------------------
-        # Recupera todos os eventos
-        # ----------------------------------------------------
 
         events = parse_log(
             row["log_acesso"]
@@ -1498,7 +1444,7 @@ with tab_rationale:
 
 
     # ========================================================
-    # 21. PROPENSÃO
+    # 20. PROPENSÃO
     # ========================================================
 
     with right:
@@ -1528,14 +1474,12 @@ with tab_rationale:
 
                 value=probability * 100,
 
-
                 number={
                     "suffix": "%",
                     "font": {
                         "size": 42
                     }
                 },
-
 
                 title={
                     "text": "Propensão de conversão",
@@ -1544,18 +1488,15 @@ with tab_rationale:
                     }
                 },
 
-
                 gauge={
 
                     "axis": {
                         "range": [0, 100]
                     },
 
-
                     "bar": {
                         "thickness": 0.28
                     },
-
 
                     "steps": [
 
@@ -1601,10 +1542,6 @@ with tab_rationale:
             template="plotly_dark",
         )
 
-
-        # ----------------------------------------------------
-        # Renderiza gráfico
-        # ----------------------------------------------------
 
         st.plotly_chart(
 
@@ -1653,7 +1590,7 @@ leve e exploratória.
 
 
     # ========================================================
-    # 22. PIPELINE
+    # 21. PIPELINE
     # ========================================================
 
     st.markdown(
@@ -1733,12 +1670,11 @@ leve e exploratória.
 
 
     st.write("")
-
     st.write("")
 
 
     # ========================================================
-    # 23. BASTIDORES TÉCNICOS
+    # 22. BASTIDORES TÉCNICOS
     # ========================================================
 
     with st.expander(
@@ -1797,11 +1733,10 @@ Comunicação consultiva e exploratória.
 
 
 # ============================================================
-# 24. FOOTER
+# 23. FOOTER
 # ============================================================
 
 st.write("")
-
 st.write("")
 
 
