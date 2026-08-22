@@ -2,6 +2,9 @@
 
 Projeto hands-on de hiperpersonalização com Machine Learning + IA Generativa.
 
+![Uploading GatinhoPiano.gif…]()
+
+
 ## Arquitetura da demonstração ⚙️
 
 `Histórico → Feature Engineering → XGBoost → Propensão → Gemini → Experiência Streamlit`
