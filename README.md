@@ -2,7 +2,7 @@
 
 Projeto hands-on de hiperpersonalização com Machine Learning + IA Generativa.
 
-![Uploading GatinhoPiano.gif…]()
+<img width="500" height="287" alt="GatinhoPiano" src="https://github.com/user-attachments/assets/d42b3c0b-9a26-45e8-ab99-546958b9f589" />
 
 
 ## Arquitetura da demonstração ⚙️
